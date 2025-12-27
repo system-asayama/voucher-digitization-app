@@ -769,7 +769,7 @@ def mypage():
     cur = conn.cursor()
     
     cur.execute(_sql(conn, '''
-        SELECT id, login_id, name, email, is_owner, can_manage_admins, created_at, updated_at
+        SELECT id, login_id, name, email, is_owner, can_manage_admins, openai_api_key, created_at, updated_at
         FROM "T_管理者"
         WHERE id = %s AND role = %s
     '''), (user_id, ROLES["SYSTEM_ADMIN"]))
@@ -788,9 +788,10 @@ def mypage():
         'email': row[3],
         'is_owner': row[4],
         'can_manage_admins': row[5],
+        'openai_api_key': row[6],
         'role': ROLES["SYSTEM_ADMIN"],
-        'created_at': row[6],
-        'updated_at': row[7]
+        'created_at': row[7],
+        'updated_at': row[8]
     }
     
     # POSTリクエスト（プロフィール編集またはパスワード変更）
@@ -802,6 +803,7 @@ def mypage():
             login_id = request.form.get('login_id', '').strip()
             name = request.form.get('name', '').strip()
             email = request.form.get('email', '').strip()
+            openai_api_key = request.form.get('openai_api_key', '').strip()
             
             if not login_id or not name:
                 conn.close()
@@ -818,9 +820,9 @@ def mypage():
             # プロフィール更新
             cur.execute(_sql(conn, '''
                 UPDATE "T_管理者"
-                SET login_id = %s, name = %s, email = %s, updated_at = CURRENT_TIMESTAMP
+                SET login_id = %s, name = %s, email = %s, openai_api_key = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
-            '''), (login_id, name, email, user_id))
+            '''), (login_id, name, email, openai_api_key, user_id))
             conn.commit()
             conn.close()
             
