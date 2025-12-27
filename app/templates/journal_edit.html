@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}仕訳編集{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">仕訳編集 #{{ journal[0] if journal is sequence else journal.id }}</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                        
+                        <div class="mb-3">
+                            <label for="date" class="form-label">日付 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="{{ journal[4] if journal is sequence else journal.日付 }}" required>
+                        </div>
+
+                        <hr>
+                        <h5>借方</h5>
+
+                        <div class="mb-3">
+                            <label for="debit_subject" class="form-label">借方勘定科目 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="debit_subject" name="debit_subject" required>
+                                {% set current_debit = journal[5] if journal is sequence else journal.借方勘定科目 %}
+                                {% for subject in account_subjects %}
+                                    <option value="{{ subject }}" {% if subject == current_debit %}selected{% endif %}>{{ subject }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="debit_amount" class="form-label">借方金額 <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="debit_amount" name="debit_amount" 
+                                   value="{{ journal[6] if journal is sequence else journal.借方金額 }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="debit_sub_subject" class="form-label">借方補助科目</label>
+                            <input type="text" class="form-control" id="debit_sub_subject" name="debit_sub_subject" 
+                                   value="{{ journal[7] if journal is sequence else journal.借方補助科目 }}">
+                        </div>
+
+                        <hr>
+                        <h5>貸方</h5>
+
+                        <div class="mb-3">
+                            <label for="credit_subject" class="form-label">貸方勘定科目 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="credit_subject" name="credit_subject" required>
+                                {% set current_credit = journal[8] if journal is sequence else journal.貸方勘定科目 %}
+                                {% for subject in account_subjects %}
+                                    <option value="{{ subject }}" {% if subject == current_credit %}selected{% endif %}>{{ subject }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="credit_amount" class="form-label">貸方金額 <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="credit_amount" name="credit_amount" 
+                                   value="{{ journal[9] if journal is sequence else journal.貸方金額 }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="credit_sub_subject" class="form-label">貸方補助科目</label>
+                            <input type="text" class="form-control" id="credit_sub_subject" name="credit_sub_subject" 
+                                   value="{{ journal[10] if journal is sequence else journal.貸方補助科目 }}">
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">摘要</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ journal[11] if journal is sequence else journal.摘要 }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('journal.detail', journal_id=journal[0] if journal is sequence else journal.id) }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> 戻る
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> 保存
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

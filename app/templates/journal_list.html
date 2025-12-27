@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}仕訳一覧{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>仕訳一覧</h2>
+        <a href="{{ url_for('journal.generate') }}" class="btn btn-primary">
+            <i class="bi bi-magic"></i> 仕訳自動生成
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>日付</th>
+                            <th>借方科目</th>
+                            <th>借方金額</th>
+                            <th>貸方科目</th>
+                            <th>貸方金額</th>
+                            <th>摘要</th>
+                            <th>会社名</th>
+                            <th>状態</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if journals %}
+                            {% for journal in journals %}
+                                <tr>
+                                    <td>{{ journal[0] if journal is sequence else journal.id }}</td>
+                                    <td>{{ journal[1] if journal is sequence else journal.日付 }}</td>
+                                    <td>{{ journal[2] if journal is sequence else journal.借方勘定科目 }}</td>
+                                    <td class="text-end">
+                                        {% set debit = journal[3] if journal is sequence else journal.借方金額 %}
+                                        ¥{{ "{:,.0f}".format(debit) if debit else '0' }}
+                                    </td>
+                                    <td>{{ journal[4] if journal is sequence else journal.貸方勘定科目 }}</td>
+                                    <td class="text-end">
+                                        {% set credit = journal[5] if journal is sequence else journal.貸方金額 %}
+                                        ¥{{ "{:,.0f}".format(credit) if credit else '0' }}
+                                    </td>
+                                    <td>
+                                        {% set desc = journal[6] if journal is sequence else journal.摘要 %}
+                                        {% if desc %}
+                                            {{ desc[:30] }}{% if desc|length > 30 %}...{% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ journal[10] if journal is sequence else journal.会社名 }}</td>
+                                    <td>
+                                        {% set confirmed = journal[8] if journal is sequence else journal.確認済みフラグ %}
+                                        {% set auto_gen = journal[7] if journal is sequence else journal.自動生成フラグ %}
+                                        {% if confirmed %}
+                                            <span class="badge bg-success">確認済</span>
+                                        {% elif auto_gen %}
+                                            <span class="badge bg-warning">自動生成</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">手動入力</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set journal_id = journal[0] if journal is sequence else journal.id %}
+                                        <a href="{{ url_for('journal.detail', journal_id=journal_id) }}" class="btn btn-sm btn-info">詳細</a>
+                                        <a href="{{ url_for('journal.edit', journal_id=journal_id) }}" class="btn btn-sm btn-warning">編集</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center text-muted">仕訳がありません</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

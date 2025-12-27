@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}仕訳自動生成{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">仕訳自動生成</h4>
+        </div>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% if vouchers %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>仕訳自動生成について</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>証憑の摘要や金額から適切な勘定科目を自動推定します</li>
+                        <li>企業情報が紐づいている場合は、補助科目として設定されます</li>
+                        <li>生成後は必ず内容を確認し、必要に応じて編集してください</li>
+                    </ul>
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="50">
+                                        <input type="checkbox" id="select_all" class="form-check-input">
+                                    </th>
+                                    <th>ID</th>
+                                    <th>日付</th>
+                                    <th>金額</th>
+                                    <th>摘要</th>
+                                    <th>電話番号</th>
+                                    <th>会社名</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for voucher in vouchers %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" name="voucher_ids[]" 
+                                                   value="{{ voucher[0] if voucher is sequence else voucher.id }}" 
+                                                   class="form-check-input voucher-checkbox">
+                                        </td>
+                                        <td>{{ voucher[0] if voucher is sequence else voucher.id }}</td>
+                                        <td>{{ voucher[1] if voucher is sequence else voucher.日付 }}</td>
+                                        <td>
+                                            {% set amount = voucher[2] if voucher is sequence else voucher.金額 %}
+                                            {% if amount %}
+                                                ¥{{ "{:,.0f}".format(amount) }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% set desc = voucher[3] if voucher is sequence else voucher.摘要 %}
+                                            {% if desc %}
+                                                {{ desc[:30] }}{% if desc|length > 30 %}...{% endif %}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ voucher[4] if voucher is sequence else voucher.電話番号 }}</td>
+                                        <td>
+                                            {% set company = voucher[7] if voucher is sequence else voucher.会社名 %}
+                                            {% if company %}
+                                                <span class="badge bg-success">{{ company }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">未紐付</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{{ url_for('journal.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 戻る
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="generate_btn">
+                            <i class="bi bi-magic"></i> 選択した証憑から仕訳を生成
+                        </button>
+                    </div>
+                </form>
+
+                <script>
+                    // 全選択チェックボックス
+                    document.getElementById('select_all').addEventListener('change', function() {
+                        const checkboxes = document.querySelectorAll('.voucher-checkbox');
+                        checkboxes.forEach(cb => cb.checked = this.checked);
+                    });
+
+                    // 生成ボタンのバリデーション
+                    document.getElementById('generate_btn').addEventListener('click', function(e) {
+                        const checked = document.querySelectorAll('.voucher-checkbox:checked');
+                        if (checked.length === 0) {
+                            e.preventDefault();
+                            alert('証憑を選択してください');
+                        }
+                    });
+                </script>
+
+            {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    未処理の証憑がありません。まずは証憑をアップロードしてください。
+                </div>
+                <a href="{{ url_for('voucher.upload') }}" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> 証憑をアップロード
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

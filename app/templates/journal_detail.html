@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}仕訳詳細{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">仕訳詳細 #{{ journal[0] if journal is sequence else journal.id }}</h4>
+            <div>
+                {% set confirmed = journal[13] if journal is sequence else journal.確認済みフラグ %}
+                {% if not confirmed %}
+                    <form method="POST" action="{{ url_for('journal.confirm', journal_id=journal[0] if journal is sequence else journal.id) }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bi bi-check-circle"></i> 確認済みにする
+                        </button>
+                    </form>
+                {% endif %}
+                <a href="{{ url_for('journal.edit', journal_id=journal[0] if journal is sequence else journal.id) }}" class="btn btn-warning btn-sm">
+                    <i class="bi bi-pencil"></i> 編集
+                </a>
+                <form method="POST" action="{{ url_for('journal.delete', journal_id=journal[0] if journal is sequence else journal.id) }}" style="display: inline;" onsubmit="return confirm('本当に削除しますか?');">
+                    <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash"></i> 削除
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <th width="30%">日付</th>
+                        <td>{{ journal[4] if journal is sequence else journal.日付 }}</td>
+                    </tr>
+                    <tr>
+                        <th>借方勘定科目</th>
+                        <td>{{ journal[5] if journal is sequence else journal.借方勘定科目 }}</td>
+                    </tr>
+                    <tr>
+                        <th>借方金額</th>
+                        <td>
+                            {% set debit = journal[6] if journal is sequence else journal.借方金額 %}
+                            ¥{{ "{:,.0f}".format(debit) if debit else '0' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>借方補助科目</th>
+                        <td>{{ journal[7] if journal is sequence else journal.借方補助科目 }}</td>
+                    </tr>
+                    <tr>
+                        <th>貸方勘定科目</th>
+                        <td>{{ journal[8] if journal is sequence else journal.貸方勘定科目 }}</td>
+                    </tr>
+                    <tr>
+                        <th>貸方金額</th>
+                        <td>
+                            {% set credit = journal[9] if journal is sequence else journal.貸方金額 %}
+                            ¥{{ "{:,.0f}".format(credit) if credit else '0' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>貸方補助科目</th>
+                        <td>{{ journal[10] if journal is sequence else journal.貸方補助科目 }}</td>
+                    </tr>
+                    <tr>
+                        <th>摘要</th>
+                        <td>{{ journal[11] if journal is sequence else journal.摘要 }}</td>
+                    </tr>
+                    <tr>
+                        <th>会社名</th>
+                        <td>{{ journal[-2] if journal is sequence else journal.会社名 }}</td>
+                    </tr>
+                    <tr>
+                        <th>状態</th>
+                        <td>
+                            {% set confirmed = journal[13] if journal is sequence else journal.確認済みフラグ %}
+                            {% set auto_gen = journal[12] if journal is sequence else journal.自動生成フラグ %}
+                            {% if confirmed %}
+                                <span class="badge bg-success">確認済</span>
+                            {% elif auto_gen %}
+                                <span class="badge bg-warning">自動生成（未確認）</span>
+                            {% else %}
+                                <span class="badge bg-secondary">手動入力（未確認）</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>登録日時</th>
+                        <td>{{ journal[15] if journal is sequence else journal.created_at }}</td>
+                    </tr>
+                    <tr>
+                        <th>更新日時</th>
+                        <td>{{ journal[16] if journal is sequence else journal.updated_at }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            {% set voucher_image = journal[-1] if journal is sequence else journal.画像パス %}
+            {% if voucher_image %}
+                <div class="mt-4">
+                    <h5>証憑画像</h5>
+                    <img src="{{ url_for('static', filename='../' + voucher_image) }}" class="img-fluid" alt="証憑画像" style="max-height: 400px;">
+                </div>
+            {% endif %}
+
+            <div class="mt-4">
+                <a href="{{ url_for('journal.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> 一覧に戻る
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
