@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 OCR処理とデータ抽出ユーティリティ
+Google Cloud Vision API統合版
 """
 
 import re
@@ -10,24 +11,74 @@ from PIL import Image
 import pytesseract
 
 
-def extract_text_from_image(image_path: str, lang: str = 'jpn') -> str:
+def extract_text_from_image(image_path: str, use_google_vision: bool = True) -> str:
     """
     画像からテキストを抽出
     
     Args:
         image_path: 画像ファイルのパス
-        lang: OCR言語設定（デフォルト: 'jpn'）
+        use_google_vision: Google Cloud Vision APIを使用するか（デフォルト: True）
     
     Returns:
         抽出されたテキスト
     """
+    # Google Cloud Vision APIを優先的に使用
+    if use_google_vision:
+        try:
+            return extract_text_with_google_vision(image_path)
+        except Exception as e:
+            print(f"Google Vision APIエラー: {e}")
+            print("Tesseract OCRにフォールバック")
+    
+    # フォールバック: Tesseract OCR
     try:
         image = Image.open(image_path)
-        text = pytesseract.image_to_string(image, lang=lang)
+        text = pytesseract.image_to_string(image, lang='jpn')
         return text
     except Exception as e:
-        print(f"OCRエラー: {e}")
+        print(f"Tesseract OCRエラー: {e}")
         return ""
+
+
+def extract_text_with_google_vision(image_path: str) -> str:
+    """
+    Google Cloud Vision APIを使用して画像からテキストを抽出
+    
+    Args:
+        image_path: 画像ファイルのパス
+    
+    Returns:
+        抽出されたテキスト
+    """
+    from google.cloud import vision
+    import io
+    
+    # 環境変数からAPIキーを取得
+    google_credentials = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    if not google_credentials:
+        raise Exception("GOOGLE_APPLICATION_CREDENTIALS環境変数が設定されていません")
+    
+    # Vision APIクライアントを初期化
+    client = vision.ImageAnnotatorClient()
+    
+    # 画像ファイルを読み込み
+    with io.open(image_path, 'rb') as image_file:
+        content = image_file.read()
+    
+    image = vision.Image(content=content)
+    
+    # テキスト検出を実行
+    response = client.text_detection(image=image)
+    texts = response.text_annotations
+    
+    if response.error.message:
+        raise Exception(f'Google Vision API Error: {response.error.message}')
+    
+    # 最初の結果が全体のテキスト
+    if texts:
+        return texts[0].description
+    
+    return ""
 
 
 def extract_phone_numbers(text: str) -> List[str]:
@@ -132,12 +183,21 @@ def extract_company_name(text: str) -> Optional[str]:
         r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+合同会社',
         r'合資会社[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
         r'合名会社[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+        # 略称対応
+        r'㈱[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+        r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+㈱',
+        r'\(株\)[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+        r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+\(株\)',
     ]
     
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
-            return match.group(0)
+            company_name = match.group(0)
+            # 略称を正式名称に変換
+            company_name = company_name.replace('㈱', '株式会社')
+            company_name = company_name.replace('(株)', '株式会社')
+            return company_name
     
     return None
 
@@ -201,18 +261,19 @@ def extract_date(text: str) -> Optional[str]:
     return None
 
 
-def process_receipt_image(image_path: str) -> Dict[str, any]:
+def process_receipt_image(image_path: str, use_google_vision: bool = True) -> Dict[str, any]:
     """
     レシート画像を処理して情報を抽出
     
     Args:
         image_path: 画像ファイルのパス
+        use_google_vision: Google Cloud Vision APIを使用するか
     
     Returns:
         抽出された情報の辞書
     """
     # OCRでテキスト抽出
-    text = extract_text_from_image(image_path)
+    text = extract_text_from_image(image_path, use_google_vision=use_google_vision)
     
     # 各種情報を抽出
     result = {

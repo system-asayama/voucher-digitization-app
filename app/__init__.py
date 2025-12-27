@@ -7,6 +7,10 @@ def create_app() -> Flask:
     Flaskアプリケーションを生成して返します。
     Herokuで実行する場合もローカルで実行する場合もこの関数が呼ばれます。
     """
+    # Google Cloud認証情報のセットアップ
+    from .utils.google_vision_helper import setup_google_credentials
+    setup_google_credentials()
+    
     app = Flask(__name__)
 
     # SECRET_KEY設定
