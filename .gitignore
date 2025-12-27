@@ -61,3 +61,6 @@ htmlcov/
 
 # Heroku
 .heroku/
+
+# Uploaded files
+uploads/

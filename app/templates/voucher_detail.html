@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}証憑詳細{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">証憑詳細 #{{ voucher[0] if voucher is sequence else voucher.id }}</h4>
+                    <div>
+                        <a href="{{ url_for('voucher.edit', voucher_id=voucher[0] if voucher is sequence else voucher.id) }}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil"></i> 編集
+                        </a>
+                        <form method="POST" action="{{ url_for('voucher.delete', voucher_id=voucher[0] if voucher is sequence else voucher.id) }}" style="display: inline;" onsubmit="return confirm('本当に削除しますか?');">
+                            <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-trash"></i> 削除
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <th width="30%">日付</th>
+                                <td>{{ voucher[4] if voucher is sequence else voucher.日付 }}</td>
+                            </tr>
+                            <tr>
+                                <th>金額</th>
+                                <td>
+                                    {% set amount = voucher[3] if voucher is sequence else voucher.金額 %}
+                                    {% if amount %}
+                                        ¥{{ "{:,.0f}".format(amount) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>摘要</th>
+                                <td>{{ voucher[5] if voucher is sequence else voucher.摘要 }}</td>
+                            </tr>
+                            <tr>
+                                <th>電話番号</th>
+                                <td>{{ voucher[6] if voucher is sequence else voucher.電話番号 }}</td>
+                            </tr>
+                            <tr>
+                                <th>住所</th>
+                                <td>{{ voucher[7] if voucher is sequence else voucher.住所 }}</td>
+                            </tr>
+                            <tr>
+                                <th>ステータス</th>
+                                <td>
+                                    {% set status = voucher[11] if voucher is sequence else voucher.ステータス %}
+                                    {% if status == 'pending' %}
+                                        <span class="badge bg-warning">未処理</span>
+                                    {% elif status == 'processing' %}
+                                        <span class="badge bg-info">処理中</span>
+                                    {% elif status == 'completed' %}
+                                        <span class="badge bg-success">完了</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>アップロード者</th>
+                                <td>{{ voucher[-1] if voucher is sequence else voucher.uploaded_by_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>アップロード日時</th>
+                                <td>{{ voucher[12] if voucher is sequence else voucher.created_at }}</td>
+                            </tr>
+                            <tr>
+                                <th>最終更新日時</th>
+                                <td>{{ voucher[13] if voucher is sequence else voucher.updated_at }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="mt-3">
+                        <h5>OCR抽出結果（生データ）</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ voucher[10] if voucher is sequence else voucher.OCR結果_生データ }}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('voucher.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 一覧に戻る
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">画像プレビュー</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% set image_path = voucher[8] if voucher is sequence else voucher.画像パス %}
+                    {% if image_path %}
+                        <img src="{{ url_for('static', filename='../' + image_path) }}" class="img-fluid" alt="証憑画像" style="max-height: 500px;">
+                    {% else %}
+                        <p class="text-muted">画像がありません</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

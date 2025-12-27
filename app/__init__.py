@@ -161,6 +161,12 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"⚠️ employee blueprint 登録エラー: {e}")
 
+    try:
+        from .blueprints.voucher import bp as voucher_bp
+        app.register_blueprint(voucher_bp)
+    except Exception as e:
+        print(f"⚠️ voucher blueprint 登録エラー: {e}")
+
     # エラーハンドラ
     @app.errorhandler(404)
     def not_found(error):
