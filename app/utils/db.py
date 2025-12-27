@@ -150,6 +150,10 @@ def init_schema(conn):
             名称        TEXT NOT NULL,
             slug        TEXT UNIQUE NOT NULL,
             有効        INTEGER DEFAULT 1,
+            ai_model    TEXT DEFAULT 'gemini-1.5-flash',
+            openai_api_key TEXT,
+            google_api_key TEXT,
+            anthropic_api_key TEXT,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
     else:
@@ -159,6 +163,10 @@ def init_schema(conn):
             名称        TEXT NOT NULL,
             slug        TEXT UNIQUE NOT NULL,
             有効        INTEGER DEFAULT 1,
+            ai_model    TEXT DEFAULT 'gemini-1.5-flash',
+            openai_api_key TEXT,
+            google_api_key TEXT,
+            anthropic_api_key TEXT,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
 

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テナント設定 - AI設定</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        .model-option {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .model-option:hover {
+            border-color: #4CAF50;
+            background-color: #f9f9f9;
+        }
+        .model-option.selected {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+        .model-option input[type="radio"] {
+            margin-right: 10px;
+        }
+        .model-info {
+            margin-left: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .model-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+        .model-cost {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .api-key-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← ダッシュボードに戻る</a>
+        
+        <h1>テナント設定 - AI設定</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('tenant_settings.update') }}">
+            <h2>AIモデル選択</h2>
+            <p>証憑データ化処理に使用するAIモデルを選択してください。</p>
+            
+            <div class="form-group">
+                {% for model in models %}
+                <div class="model-option {% if model.selected %}selected{% endif %}" onclick="selectModel('{{ model.value }}')">
+                    <label>
+                        <input type="radio" name="ai_model" value="{{ model.value }}" {% if model.selected %}checked{% endif %}>
+                        <span class="model-name">{{ model.info.name }}</span>
+                    </label>
+                    <div class="model-info">
+                        <div>提供元: {{ model.info.provider }}</div>
+                        <div>1仕訳あたりのコスト: <span class="model-cost">{{ model.info.cost_per_transaction }}円</span></div>
+                        <div>特徴: {{ model.info.description }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <h2>APIキー設定</h2>
+            <p>選択したAIモデルに応じて、必要なAPIキーを設定してください。</p>
+            
+            <div class="form-group">
+                <label for="google_api_key">Google API Key（Gemini用）</label>
+                <input type="password" id="google_api_key" name="google_api_key" 
+                       value="{{ google_api_key or '' }}" 
+                       placeholder="AIza...">
+                <div class="api-key-hint">
+                    取得方法: <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="openai_api_key">OpenAI API Key（GPT-4o / GPT-4o-mini用）</label>
+                <input type="password" id="openai_api_key" name="openai_api_key" 
+                       value="{{ openai_api_key or '' }}" 
+                       placeholder="sk-...">
+                <div class="api-key-hint">
+                    取得方法: <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="anthropic_api_key">Anthropic API Key（Claude用・将来対応）</label>
+                <input type="password" id="anthropic_api_key" name="anthropic_api_key" 
+                       value="{{ anthropic_api_key or '' }}" 
+                       placeholder="sk-ant-...">
+                <div class="api-key-hint">
+                    取得方法: <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">設定を保存</button>
+        </form>
+    </div>
+    
+    <script>
+        function selectModel(modelValue) {
+            // すべてのラジオボタンをクリア
+            document.querySelectorAll('.model-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // 選択されたモデルのラジオボタンをチェック
+            const radio = document.querySelector(`input[value="${modelValue}"]`);
+            radio.checked = true;
+            radio.closest('.model-option').classList.add('selected');
+        }
+    </script>
+</body>
+</html>

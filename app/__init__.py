@@ -178,6 +178,12 @@ def create_app() -> Flask:
         print(f"⚠️ company blueprint 登録エラー: {e}")
 
     try:
+        from .blueprints.tenant_settings import bp as tenant_settings_bp
+        app.register_blueprint(tenant_settings_bp)
+    except Exception as e:
+        print(f"⚠️ tenant_settings blueprint 登録エラー: {e}")
+
+    try:
         from .blueprints.journal import bp as journal_bp
         app.register_blueprint(journal_bp)
     except Exception as e:

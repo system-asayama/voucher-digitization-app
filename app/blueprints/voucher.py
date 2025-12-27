@@ -13,6 +13,7 @@ from ..utils import get_db, _sql
 from ..utils.decorators import require_roles
 from ..utils.ocr import process_receipt_image, save_uploaded_file
 from ..utils.nta_api import search_company_by_ocr_data
+from ..utils.ai_helper import get_ai_settings, correct_ocr_text, normalize_company_name_with_ai, select_best_company_from_candidates
 
 bp = Blueprint('voucher', __name__, url_prefix='/voucher')
 
@@ -101,10 +102,58 @@ def upload():
         # OCR処理
         ocr_result = process_receipt_image(filepath)
         
+        # AI設定を取得
+        conn_temp = get_db()
+        cur_temp = conn_temp.cursor()
+        ai_settings = {'ai_model': 'gemini-1.5-flash'}  # デフォルト
+        api_keys = {}
+        
+        try:
+            cur_temp.execute(_sql(conn_temp, 'SELECT ai_model, openai_api_key, google_api_key, anthropic_api_key FROM "T_テナント" WHERE id = %s'), (tenant_id,))
+            tenant_settings = cur_temp.fetchone()
+            if tenant_settings:
+                ai_settings['ai_model'] = tenant_settings[0] or 'gemini-1.5-flash'
+                api_keys = {
+                    'openai_api_key': tenant_settings[1],
+                    'google_api_key': tenant_settings[2],
+                    'anthropic_api_key': tenant_settings[3],
+                }
+        except Exception as e:
+            print(f"AI設定取得エラー: {e}")
+        finally:
+            conn_temp.close()
+        
+        # AIでOCR結果を補正
+        try:
+            if api_keys.get('google_api_key') or api_keys.get('openai_api_key'):
+                corrected_text = correct_ocr_text(
+                    ocr_result.get('full_text', ''),
+                    ai_settings['ai_model'],
+                    api_keys
+                )
+                # 補正後のテキストを再解析
+                from ..utils.ocr import extract_phone_numbers, extract_addresses, extract_company_name
+                ocr_result['phone_numbers'] = extract_phone_numbers(corrected_text)
+                ocr_result['addresses'] = extract_addresses(corrected_text)
+                ocr_result['company_name'] = extract_company_name(corrected_text)
+        except Exception as e:
+            print(f"AI補正エラー: {e}")
+        
         # 電話番号と住所は最初の1件を使用
         phone = ocr_result['phone_numbers'][0] if ocr_result['phone_numbers'] else None
         address = ocr_result['addresses'][0] if ocr_result['addresses'] else None
         company_name = ocr_result.get('company_name')
+        
+        # AIで会社名を正規化
+        if company_name and (api_keys.get('google_api_key') or api_keys.get('openai_api_key')):
+            try:
+                company_name = normalize_company_name_with_ai(
+                    company_name,
+                    ai_settings['ai_model'],
+                    api_keys
+                )
+            except Exception as e:
+                print(f"AI会社名正規化エラー: {e}")
         
         # OCR結果から企業情報を自動検索
         company_id = None

@@ -117,7 +117,15 @@ KEYWORD_RULES = {
 }
 
 
-def estimate_account_subject(description: str, amount: float, company_name: Optional[str] = None) -> str:
+def estimate_account_subject(
+    description: str,
+    amount: float,
+    company_name: Optional[str] = None,
+    ocr_text: Optional[str] = None,
+    use_ai: bool = False,
+    ai_model: Optional[str] = None,
+    api_keys: Optional[Dict] = None
+) -> Tuple[str, str]:
     """
     摘要と金額から勘定科目を推定
     
@@ -125,27 +133,45 @@ def estimate_account_subject(description: str, amount: float, company_name: Opti
         description: 摘要（説明文）
         amount: 金額
         company_name: 会社名（任意）
+        ocr_text: OCR全テキスト（任意）
+        use_ai: AIを使用するか
+        ai_model: AIモデル名
+        api_keys: APIキーの辞書
     
     Returns:
-        推定された勘定科目
+        (推定された勘定科目, 摘要)
     """
-    if not description:
-        return '雑費'
+    # AIを使用する場合
+    if use_ai and ai_model and api_keys:
+        try:
+            from .ai_helper import estimate_account_subject_with_ai
+            result = estimate_account_subject_with_ai(
+                ocr_text or description,
+                company_name,
+                amount,
+                ai_model,
+                api_keys
+            )
+            return result['account_subject'], result['description']
+        except Exception as e:
+            print(f"AI勘定科目推定エラー: {e}")
+            # エラー時はキーワードマッチングにフォールバック
     
-    # キーワードマッチング
+    # キーワードマッチング（従来の方法）
+    if not description:
+        return '雑費', ''
+    
     for subject, keywords in KEYWORD_RULES.items():
         for keyword in keywords:
             if keyword in description:
-                return subject
+                return subject, description
     
     # 金額による推定（簡易版）
     if amount >= 100000:
-        # 高額な場合は固定資産や仕入の可能性
         if '購入' in description or '買' in description:
-            return '仕入高'
+            return '仕入高', description
     
-    # デフォルト
-    return '雑費'
+    return '雑費', description
 
 
 def generate_journal_entry(
