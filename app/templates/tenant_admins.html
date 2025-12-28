@@ -177,7 +177,7 @@
               {% endif %}
             </form>
             
-            <form method="post" action="{{ url_for('tenant_admin.transfer_admin_ownership', admin_id=a.id) }}" style="display:inline" onsubmit="return confirm('{{ a.name }} にオーナー権限を移譲しますか？')">
+            <form method="post" action="{{ url_for('tenant_admin.transfer_tenant_ownership', tadmin_id=a.id) }}" style="display:inline" onsubmit="return confirm('{{ a.name }} にオーナー権限を移譲しますか？')">
               {% if get_csrf %}<input type="hidden" name="csrf_token" value="{{ get_csrf() }}">{% endif %}
               <button class="btn small" type="submit" style="background:#ff9800">オーナー移譲</button>
             </form>
@@ -200,7 +200,7 @@
               {% endif %}
             </form>
             
-            <form method="post" action="{{ url_for('tenant_admin.transfer_admin_ownership', admin_id=a.id) }}" style="display:inline" onsubmit="return confirm('{{ a.name }} にオーナー権限を移譲しますか？')">
+            <form method="post" action="{{ url_for('tenant_admin.transfer_tenant_ownership', tadmin_id=a.id) }}" style="display:inline" onsubmit="return confirm('{{ a.name }} にオーナー権限を移譲しますか？')">
               {% if get_csrf %}<input type="hidden" name="csrf_token" value="{{ get_csrf() }}">{% endif %}
               <button class="btn small" type="submit" style="background:#ff9800">オーナー移譲</button>
             </form>
