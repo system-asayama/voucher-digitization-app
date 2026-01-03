@@ -1745,7 +1745,7 @@ def tenant_apps(tid):
                 app_setting = db.query(TTenantAppSetting).filter(
                     and_(
                         TTenantAppSetting.tenant_id == tid,
-                        TTenantAppSetting.app_name == app['name']
+                        TTenantAppSetting.app_id == app['id']
                     )
                 ).first()
                 enabled = app_setting.enabled if app_setting else 1
@@ -2046,7 +2046,7 @@ def store_apps(tid, sid):
                 app_setting = db.query(TTenpoAppSetting).filter(
                     and_(
                         TTenpoAppSetting.store_id == sid,
-                        TTenpoAppSetting.app_name == app['name']
+                        TTenpoAppSetting.app_id == app['id']
                     )
                 ).first()
                 enabled = app_setting.enabled if app_setting else 1
