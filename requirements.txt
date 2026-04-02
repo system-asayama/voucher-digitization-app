@@ -11,3 +11,4 @@ google-cloud-vision==3.7.2
 openai==1.54.3
 google-generativeai==0.8.3
 anthropic==0.39.0
+Markdown==3.7
