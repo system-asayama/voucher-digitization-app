@@ -163,7 +163,41 @@ def run_auto_migrations():
         else:
             logger.info("- created_by_admin_id カラムは既に存在します")
         
-        # 3. T_システム管理者_テナント テーブルを作成
+        # 3. T_テナントテーブルに不足しているカラムを追加
+        tenant_columns = [
+            ('accounting_method', 'VARCHAR(20) DEFAULT \'tax_inclusive\'', '経理方式'),
+            ('tax_filing_method', 'VARCHAR(30) DEFAULT \'exempt\'', '課税方式'),
+            ('tax_rounding', 'VARCHAR(20) DEFAULT \'cut_off\'', '端数処理'),
+            ('simplified_tax_category', 'VARCHAR(20) DEFAULT \'category1\'', '簡易課税の事業区分'),
+            ('tax_calculation_method', 'VARCHAR(50) DEFAULT \'sales_discount_purchase_discount\'', '計算方式')
+        ]
+        
+        for col_name, col_type, col_comment in tenant_columns:
+            if not column_exists(session, 'T_テナント', col_name):
+                logger.info(f"T_テナントテーブルに {col_name} カラムを追加中...")
+                
+                if db_type == 'postgresql':
+                    session.execute(text(f'''
+                        ALTER TABLE "T_テナント" 
+                        ADD COLUMN {col_name} {col_type}
+                    '''))
+                    session.execute(text(f'''
+                        COMMENT ON COLUMN "T_テナント".{col_name} 
+                        IS '{col_comment}'
+                    '''))
+                else:
+                    session.execute(text(f'''
+                        ALTER TABLE `T_テナント` 
+                        ADD COLUMN `{col_name}` {col_type} 
+                        COMMENT '{col_comment}'
+                    '''))
+                
+                session.commit()
+                logger.info(f"✓ {col_name} カラムを追加しました")
+            else:
+                logger.info(f"- {col_name} カラムは既に存在します")
+        
+        # 4. T_システム管理者_テナント テーブルを作成
         if not table_exists(session, 'T_システム管理者_テナント'):
             logger.info("T_システム管理者_テナント テーブルを作成中...")
             
