@@ -127,6 +127,14 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"⚠️ データベース初期化エラー: {e}")
 
+    # 自動マイグレーション実行
+    try:
+        from .auto_migrations import run_auto_migrations
+        run_auto_migrations()
+        print("✅ 自動マイグレーション完了")
+    except Exception as e:
+        print(f"⚠️ 自動マイグレーションエラー: {e}")
+
     # blueprints 登録
     try:
         from .blueprints.health import bp as health_bp  # type: ignore
