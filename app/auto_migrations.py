@@ -238,6 +238,111 @@ def run_auto_migrations():
         else:
             logger.info("- T_システム管理者_テナント テーブルは既に存在します")
         
+        # 5. T_テナントテーブルに google_vision_api_key カラムを追加
+        if not column_exists(session, 'T_テナント', 'google_vision_api_key'):
+            logger.info("T_テナントテーブルに google_vision_api_key カラムを追加中...")
+            
+            if db_type == 'postgresql':
+                session.execute(text("""
+                    ALTER TABLE "T_テナント" 
+                    ADD COLUMN google_vision_api_key TEXT NULL
+                """))
+                session.execute(text("""
+                    COMMENT ON COLUMN "T_テナント".google_vision_api_key 
+                    IS 'Google Cloud Vision APIキー（OCR用）'
+                """))
+            else:
+                session.execute(text("""
+                    ALTER TABLE `T_テナント` 
+                    ADD COLUMN `google_vision_api_key` TEXT NULL 
+                    COMMENT 'Google Cloud Vision APIキー（OCR用）'
+                """))
+            
+            session.commit()
+            logger.info("✓ google_vision_api_key カラムを追加しました")
+        else:
+            logger.info("- google_vision_api_key カラムは既に存在します")
+        
+        # 6. T_テナントテーブルに ai_model カラムを追加
+        if not column_exists(session, 'T_テナント', 'ai_model'):
+            logger.info("T_テナントテーブルに ai_model カラムを追加中...")
+            
+            if db_type == 'postgresql':
+                session.execute(text("""
+                    ALTER TABLE "T_テナント" 
+                    ADD COLUMN ai_model VARCHAR(50) DEFAULT 'gemini-1.5-flash'
+                """))
+            else:
+                session.execute(text("""
+                    ALTER TABLE `T_テナント` 
+                    ADD COLUMN `ai_model` VARCHAR(50) DEFAULT 'gemini-1.5-flash'
+                """))
+            
+            session.commit()
+            logger.info("✓ ai_model カラムを追加しました")
+        else:
+            logger.info("- ai_model カラムは既に存在します")
+        
+        # 7. T_テナントテーブルに google_api_key カラムを追加
+        if not column_exists(session, 'T_テナント', 'google_api_key'):
+            logger.info("T_テナントテーブルに google_api_key カラムを追加中...")
+            
+            if db_type == 'postgresql':
+                session.execute(text("""
+                    ALTER TABLE "T_テナント" 
+                    ADD COLUMN google_api_key TEXT NULL
+                """))
+            else:
+                session.execute(text("""
+                    ALTER TABLE `T_テナント` 
+                    ADD COLUMN `google_api_key` TEXT NULL
+                """))
+            
+            session.commit()
+            logger.info("✓ google_api_key カラムを追加しました")
+        else:
+            logger.info("- google_api_key カラムは既に存在します")
+        
+        # 8. T_テナントテーブルに anthropic_api_key カラムを追加
+        if not column_exists(session, 'T_テナント', 'anthropic_api_key'):
+            logger.info("T_テナントテーブルに anthropic_api_key カラムを追加中...")
+            
+            if db_type == 'postgresql':
+                session.execute(text("""
+                    ALTER TABLE "T_テナント" 
+                    ADD COLUMN anthropic_api_key TEXT NULL
+                """))
+            else:
+                session.execute(text("""
+                    ALTER TABLE `T_テナント` 
+                    ADD COLUMN `anthropic_api_key` TEXT NULL
+                """))
+            
+            session.commit()
+            logger.info("✓ anthropic_api_key カラムを追加しました")
+        else:
+            logger.info("- anthropic_api_key カラムは既に存在します")
+        
+        # 9. T_テナントテーブルに openai_api_key カラムを追加
+        if not column_exists(session, 'T_テナント', 'openai_api_key'):
+            logger.info("T_テナントテーブルに openai_api_key カラムを追加中...")
+            
+            if db_type == 'postgresql':
+                session.execute(text("""
+                    ALTER TABLE "T_テナント" 
+                    ADD COLUMN openai_api_key TEXT NULL
+                """))
+            else:
+                session.execute(text("""
+                    ALTER TABLE `T_テナント` 
+                    ADD COLUMN `openai_api_key` TEXT NULL
+                """))
+            
+            session.commit()
+            logger.info("✓ openai_api_key カラムを追加しました")
+        else:
+            logger.info("- openai_api_key カラムは既に存在します")
+        
         logger.info("✓ 自動マイグレーションが正常に完了しました")
         
     except Exception as e:

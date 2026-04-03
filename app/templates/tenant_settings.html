@@ -163,6 +163,17 @@
             <p>選択したAIモデルに応じて、必要なAPIキーを設定してください。</p>
             
             <div class="form-group">
+                <label for="google_vision_api_key">🔍 Google Cloud Vision API Key（OCR用）★ 推奨</label>
+                <input type="password" id="google_vision_api_key" name="google_vision_api_key" 
+                       value="{{ google_vision_api_key or '' }}" 
+                       placeholder="AIza...">
+                <div class="api-key-hint">
+                    日本語（漢字）の認識精度99%以上。クレジット明細・銀行明細のOCRに使用します。<br>
+                    取得方法: <a href="https://console.cloud.google.com/apis/library/vision.googleapis.com" target="_blank">Google Cloud Console</a> → Cloud Vision APIを有効化 → 認証情報 → APIキーを作成
+                </div>
+            </div>
+            
+            <div class="form-group">
                 <label for="google_api_key">Google API Key（Gemini用）</label>
                 <input type="password" id="google_api_key" name="google_api_key" 
                        value="{{ google_api_key or '' }}" 

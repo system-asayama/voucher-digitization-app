@@ -32,11 +32,25 @@ def index():
         flash('テナント情報が見つかりません', 'error')
         return redirect(url_for('auth.login'))
     
-    # AI設定を取得
-    ai_model = tenant[4] if len(tenant) > 4 else 'gemini-1.5-flash'  # ai_model
-    openai_api_key = tenant[5] if len(tenant) > 5 else None  # openai_api_key
-    google_api_key = tenant[6] if len(tenant) > 6 else None  # google_api_key
-    anthropic_api_key = tenant[7] if len(tenant) > 7 else None  # anthropic_api_key
+    # AI設定を取得（カラム名で取得する）
+    cur.execute(_sql(conn, '''
+        SELECT ai_model, openai_api_key, google_api_key, anthropic_api_key, google_vision_api_key
+        FROM "T_テナント" WHERE id = %s
+    '''), (tenant_id,))
+    ai_row = cur.fetchone()
+    
+    if ai_row:
+        ai_model = ai_row[0] or 'gemini-1.5-flash'
+        openai_api_key = ai_row[1]
+        google_api_key = ai_row[2]
+        anthropic_api_key = ai_row[3]
+        google_vision_api_key = ai_row[4] if len(ai_row) > 4 else None
+    else:
+        ai_model = 'gemini-1.5-flash'
+        openai_api_key = None
+        google_api_key = None
+        anthropic_api_key = None
+        google_vision_api_key = None
     
     # AIモデル情報を取得
     models = [
@@ -65,6 +79,7 @@ def index():
         openai_api_key=openai_api_key,
         google_api_key=google_api_key,
         anthropic_api_key=anthropic_api_key,
+        google_vision_api_key=google_vision_api_key,
     )
 
 
@@ -82,19 +97,33 @@ def update():
     openai_api_key = request.form.get('openai_api_key', '').strip() or None
     google_api_key = request.form.get('google_api_key', '').strip() or None
     anthropic_api_key = request.form.get('anthropic_api_key', '').strip() or None
+    google_vision_api_key = request.form.get('google_vision_api_key', '').strip() or None
     
     conn = get_db()
     cur = conn.cursor()
     
     # AI設定を更新
-    cur.execute(_sql(conn, '''
-        UPDATE "T_テナント"
-        SET ai_model = %s,
-            openai_api_key = %s,
-            google_api_key = %s,
-            anthropic_api_key = %s
-        WHERE id = %s
-    '''), (ai_model, openai_api_key, google_api_key, anthropic_api_key, tenant_id))
+    try:
+        cur.execute(_sql(conn, '''
+            UPDATE "T_テナント"
+            SET ai_model = %s,
+                openai_api_key = %s,
+                google_api_key = %s,
+                anthropic_api_key = %s,
+                google_vision_api_key = %s
+            WHERE id = %s
+        '''), (ai_model, openai_api_key, google_api_key, anthropic_api_key, google_vision_api_key, tenant_id))
+    except Exception as e:
+        # google_vision_api_keyカラムがまだ存在しない場合のフォールバック
+        conn.rollback() if hasattr(conn, 'rollback') else None
+        cur.execute(_sql(conn, '''
+            UPDATE "T_テナント"
+            SET ai_model = %s,
+                openai_api_key = %s,
+                google_api_key = %s,
+                anthropic_api_key = %s
+            WHERE id = %s
+        '''), (ai_model, openai_api_key, google_api_key, anthropic_api_key, tenant_id))
     
     flash('AI設定を更新しました', 'success')
     return redirect(url_for('tenant_settings.index'))

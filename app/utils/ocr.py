@@ -1,37 +1,121 @@
 # -*- coding: utf-8 -*-
 """
 OCR処理とデータ抽出ユーティリティ
-Google Cloud Vision API統合版
+Google Cloud Vision API統合版（APIキーベース認証対応）
 """
 
 import re
 import os
+import json
+import base64
+import requests
 from typing import Dict, Optional, List
 from PIL import Image
-import pytesseract
 
 
-def extract_text_from_image(image_path: str, use_google_vision: bool = True) -> str:
+def extract_text_with_google_vision_api_key(image_path: str, api_key: str) -> str:
+    """
+    Google Cloud Vision APIをAPIキーで認証してテキストを抽出（REST API使用）
+    
+    Args:
+        image_path: 画像ファイルのパス
+        api_key: Google Cloud Vision APIキー
+    
+    Returns:
+        抽出されたテキスト
+    """
+    # 画像をbase64エンコード
+    with open(image_path, 'rb') as f:
+        image_content = base64.b64encode(f.read()).decode('utf-8')
+    
+    # Vision API REST APIエンドポイント
+    url = f'https://vision.googleapis.com/v1/images:annotate?key={api_key}'
+    
+    payload = {
+        'requests': [
+            {
+                'image': {
+                    'content': image_content
+                },
+                'features': [
+                    {
+                        'type': 'DOCUMENT_TEXT_DETECTION',
+                        'maxResults': 1
+                    }
+                ],
+                'imageContext': {
+                    'languageHints': ['ja', 'en']
+                }
+            }
+        ]
+    }
+    
+    response = requests.post(url, json=payload, timeout=30)
+    response.raise_for_status()
+    
+    result = response.json()
+    
+    # エラーチェック
+    if 'error' in result:
+        raise Exception(f"Vision API Error: {result['error']}")
+    
+    responses = result.get('responses', [])
+    if not responses:
+        return ""
+    
+    first_response = responses[0]
+    
+    # エラーチェック
+    if 'error' in first_response:
+        raise Exception(f"Vision API Response Error: {first_response['error']}")
+    
+    # fullTextAnnotationから全テキストを取得
+    full_text_annotation = first_response.get('fullTextAnnotation', {})
+    text = full_text_annotation.get('text', '')
+    
+    # フォールバック: textAnnotationsから取得
+    if not text:
+        text_annotations = first_response.get('textAnnotations', [])
+        if text_annotations:
+            text = text_annotations[0].get('description', '')
+    
+    return text
+
+
+def extract_text_from_image(image_path: str, use_google_vision: bool = True, google_vision_api_key: str = None) -> str:
     """
     画像からテキストを抽出
     
     Args:
         image_path: 画像ファイルのパス
         use_google_vision: Google Cloud Vision APIを使用するか（デフォルト: True）
+        google_vision_api_key: Google Cloud Vision APIキー（設定されている場合優先使用）
     
     Returns:
         抽出されたテキスト
     """
-    # Google Cloud Vision APIを優先的に使用
+    # Google Cloud Vision API（APIキーベース）を優先的に使用
+    if google_vision_api_key:
+        try:
+            print(f"Google Cloud Vision API（APIキー認証）でOCR処理中: {image_path}")
+            text = extract_text_with_google_vision_api_key(image_path, google_vision_api_key)
+            print(f"Google Cloud Vision API OCR成功: {len(text)}文字")
+            return text
+        except Exception as e:
+            print(f"Google Vision API（APIキー）エラー: {e}")
+            print("Tesseract OCRにフォールバック")
+    
+    # Google Cloud Vision API（サービスアカウント認証）を試みる
     if use_google_vision:
         try:
             return extract_text_with_google_vision(image_path)
         except Exception as e:
-            print(f"Google Vision APIエラー: {e}")
+            print(f"Google Vision API（サービスアカウント）エラー: {e}")
             print("Tesseract OCRにフォールバック")
     
     # フォールバック: Tesseract OCR
     try:
+        import pytesseract
         image = Image.open(image_path)
         text = pytesseract.image_to_string(image, lang='jpn')
         return text
@@ -42,7 +126,7 @@ def extract_text_from_image(image_path: str, use_google_vision: bool = True) -> 
 
 def extract_text_with_google_vision(image_path: str) -> str:
     """
-    Google Cloud Vision APIを使用して画像からテキストを抽出
+    Google Cloud Vision APIを使用して画像からテキストを抽出（サービスアカウント認証）
     
     Args:
         image_path: 画像ファイルのパス
@@ -68,13 +152,17 @@ def extract_text_with_google_vision(image_path: str) -> str:
     image = vision.Image(content=content)
     
     # テキスト検出を実行
-    response = client.text_detection(image=image)
-    texts = response.text_annotations
+    response = client.document_text_detection(image=image)
     
     if response.error.message:
         raise Exception(f'Google Vision API Error: {response.error.message}')
     
-    # 最初の結果が全体のテキスト
+    # fullTextAnnotationから全テキストを取得
+    if response.full_text_annotation:
+        return response.full_text_annotation.text
+    
+    # フォールバック: text_annotations
+    texts = response.text_annotations
     if texts:
         return texts[0].description
     
@@ -311,19 +399,24 @@ def extract_date(text: str) -> Optional[str]:
     return None
 
 
-def process_receipt_image(image_path: str, use_google_vision: bool = True) -> Dict[str, any]:
+def process_receipt_image(image_path: str, use_google_vision: bool = True, google_vision_api_key: str = None) -> Dict[str, any]:
     """
     レシート画像を処理して情報を抽出
     
     Args:
         image_path: 画像ファイルのパス
         use_google_vision: Google Cloud Vision APIを使用するか
+        google_vision_api_key: Google Cloud Vision APIキー（設定されている場合優先使用）
     
     Returns:
         抽出された情報の辞書
     """
     # OCRでテキスト抽出
-    text = extract_text_from_image(image_path, use_google_vision=use_google_vision)
+    text = extract_text_from_image(
+        image_path,
+        use_google_vision=use_google_vision,
+        google_vision_api_key=google_vision_api_key
+    )
     
     # 各種情報を抽出
     result = {

@@ -100,17 +100,18 @@ def upload():
         # ファイルを保存
         filepath = save_uploaded_file(file)
         
-        # OCR処理
-        ocr_result = process_receipt_image(filepath)
-        
-        # AI設定を取得
+        # AI設定を取得（OCR処理前に取得）
         conn_temp = get_db()
         cur_temp = conn_temp.cursor()
         ai_settings = {'ai_model': 'gemini-1.5-flash'}  # デフォルト
         api_keys = {}
+        google_vision_api_key = None
         
         try:
-            cur_temp.execute(_sql(conn_temp, 'SELECT ai_model, openai_api_key, google_api_key, anthropic_api_key FROM "T_テナント" WHERE id = %s'), (tenant_id,))
+            cur_temp.execute(_sql(conn_temp, '''
+                SELECT ai_model, openai_api_key, google_api_key, anthropic_api_key, google_vision_api_key
+                FROM "T_テナント" WHERE id = %s
+            '''), (tenant_id,))
             tenant_settings = cur_temp.fetchone()
             if tenant_settings:
                 ai_settings['ai_model'] = tenant_settings[0] or 'gemini-1.5-flash'
@@ -119,10 +120,14 @@ def upload():
                     'google_api_key': tenant_settings[2],
                     'anthropic_api_key': tenant_settings[3],
                 }
+                google_vision_api_key = tenant_settings[4] if len(tenant_settings) > 4 else None
         except Exception as e:
             print(f"AI設定取得エラー: {e}")
         finally:
             conn_temp.close()
+        
+        # OCR処理（Google Cloud Vision APIキーがあれば使用）
+        ocr_result = process_receipt_image(filepath, google_vision_api_key=google_vision_api_key)
         
         # AIでOCR結果を補正
         try:
