@@ -343,6 +343,32 @@ def run_auto_migrations():
         else:
             logger.info("- openai_api_key カラムは既に存在します")
         
+        # 10. T_店舗テーブルに google_vision_api_key / google_api_key / anthropic_api_key カラムを追加
+        for col_name in ['google_vision_api_key', 'google_api_key', 'anthropic_api_key']:
+            if not column_exists(session, 'T_店舗', col_name):
+                logger.info(f"T_店舗テーブルに {col_name} カラムを追加中...")
+                if db_type == 'postgresql':
+                    session.execute(text(f'ALTER TABLE "T_店舗" ADD COLUMN {col_name} TEXT NULL'))
+                else:
+                    session.execute(text(f'ALTER TABLE `T_店舗` ADD COLUMN `{col_name}` TEXT NULL'))
+                session.commit()
+                logger.info(f"✓ {col_name} カラムを追加しました (T_店舗)")
+            else:
+                logger.info(f"- {col_name} カラムは既に存在します (T_店舗)")
+        
+        # 11. T_管理者テーブルに google_vision_api_key / google_api_key / anthropic_api_key カラムを追加
+        for col_name in ['google_vision_api_key', 'google_api_key', 'anthropic_api_key']:
+            if not column_exists(session, 'T_管理者', col_name):
+                logger.info(f"T_管理者テーブルに {col_name} カラムを追加中...")
+                if db_type == 'postgresql':
+                    session.execute(text(f'ALTER TABLE "T_管理者" ADD COLUMN {col_name} TEXT NULL'))
+                else:
+                    session.execute(text(f'ALTER TABLE `T_管理者` ADD COLUMN `{col_name}` TEXT NULL'))
+                session.commit()
+                logger.info(f"✓ {col_name} カラムを追加しました (T_管理者)")
+            else:
+                logger.info(f"- {col_name} カラムは既に存在します (T_管理者)")
+        
         logger.info("✓ 自動マイグレーションが正常に完了しました")
         
     except Exception as e:

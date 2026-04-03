@@ -832,9 +832,52 @@ def mypage():
             
             flash('パスワードを変更しました', 'success')
             return redirect(url_for('admin.mypage'))
+        
+        elif action == 'update_api_keys':
+            # APIキー更新（店舗単位）
+            store_id = session.get('store_id')
+            openai_api_key = request.form.get('openai_api_key', '').strip() or None
+            google_vision_api_key = request.form.get('google_vision_api_key', '').strip() or None
+            google_api_key = request.form.get('google_api_key', '').strip() or None
+            anthropic_api_key = request.form.get('anthropic_api_key', '').strip() or None
+            
+            if store_id:
+                try:
+                    cur.execute(_sql(conn, '''
+                        UPDATE "T_店舗"
+                        SET openai_api_key = %s, google_vision_api_key = %s, google_api_key = %s, anthropic_api_key = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    '''), (openai_api_key, google_vision_api_key, google_api_key, anthropic_api_key, store_id))
+                    conn.commit()
+                    flash('APIキー設定を更新しました', 'success')
+                except Exception:
+                    conn.rollback()
+                    flash('APIキーの保存に失敗しました。カラムが未追加の可能性があります。', 'error')
+            conn.close()
+            return redirect(url_for('admin.mypage'))
+    
+    # 店舗のAPIキーを取得
+    store_api = None
+    store_id = session.get('store_id')
+    if store_id:
+        try:
+            cur.execute(_sql(conn, '''
+                SELECT openai_api_key, google_vision_api_key, google_api_key, anthropic_api_key
+                FROM "T_店舗" WHERE id = %s
+            '''), (store_id,))
+            store_row = cur.fetchone()
+            if store_row:
+                store_api = {
+                    'openai_api_key': store_row[0] or '',
+                    'google_vision_api_key': store_row[1] or '',
+                    'google_api_key': store_row[2] or '',
+                    'anthropic_api_key': store_row[3] or '',
+                }
+        except Exception:
+            pass
     
     conn.close()
-    return render_template('admin_mypage.html', user=user, tenant_name=tenant_name, stores=stores, store_list=store_list)
+    return render_template('admin_mypage.html', user=user, tenant_name=tenant_name, stores=stores, store_list=store_list, store_api=store_api)
 
 
 @bp.route('/select_store_from_mypage', methods=['POST'])
